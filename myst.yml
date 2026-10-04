@@ -27,5 +27,5 @@ project:
     # this is what tells oaktree-sapling where to look for
     # your journal's configuration
     oaktree-sapling:
-      version: v0.0.0-dev.44
+      version: v0.0.0-dev.47
       edition: "2026"
