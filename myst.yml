@@ -29,3 +29,6 @@ project:
     oaktree-sapling:
       version: v0.0.0-dev.47
       edition: "2026"
+  date: 2026-10-04
+  doi: 10.5072/zenodo.613070
+  github: https://github.com/pollomarzo/oak-demo-paper-b
