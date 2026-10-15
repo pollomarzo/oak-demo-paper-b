@@ -27,7 +27,7 @@ project:
     # this is what tells oaktree-sapling where to look for
     # your journal's configuration
     oaktree-sapling:
-      version: v0.3.0-dev.8
+      version: v0.3.0-dev.10
       edition: "2026"
   date: 2026-10-04
   github: https://github.com/pollomarzo/oak-demo-paper-b

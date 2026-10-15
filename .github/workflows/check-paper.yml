@@ -1,0 +1,40 @@
+name: Check paper
+
+# Stage 1 of the journal checks: validates with no secrets; post-checks.yml posts the report.
+# https://scholar.nexus/oaktree-sapling/design/paper-ci#design-paper-ci-two-stages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Head repo in the key: forks share branch names.
+  group: ${{ github.event_name == 'pull_request' && format('check-paper-pr-{0}-{1}', github.event.pull_request.head.repo.full_name, github.head_ref) || 'check-paper-push-main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Passes on a failing result, which post-checks.yml posts; fails only when no report was
+      # written. On a pull request it leaves pr-number and paper beside the report.
+      - uses: ./.github/actions/engine
+        with:
+          args: validate --report report.json
+          paper-env: true
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: journal-checks
+          path: |
+            report.json
+            pr-number
+            paper
+          if-no-files-found: error

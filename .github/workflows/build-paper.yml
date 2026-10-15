@@ -1,0 +1,60 @@
+name: Build paper
+
+# Stage 1 of the preview, no secrets; deploy-preview.yml deploys. A push also deploys Pages, once myst.yml has a real id.
+# https://scholar.nexus/oaktree-sapling/design/paper-ci#design-paper-ci-two-stages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Head repo in the key, and PR groups apart from the push group.
+  group: ${{ github.event_name == 'pull_request' && format('build-paper-pr-{0}-{1}', github.event.pull_request.head.repo.full_name, github.head_ref) || 'build-paper-push-main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      # The starter paper is not deployed to Pages until myst.yml has a real id.
+      placeholder: ${{ fromJSON(steps.build.outputs.result || '{}').placeholder }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Also drops symlinks from the site, and on a pull request leaves .pr-number for Stage 2.
+      - id: build
+        uses: ./.github/actions/engine
+        with:
+          args: build
+          paper-env: true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: paper-build
+          path: _build/html
+          if-no-files-found: error
+          include-hidden-files: true
+
+  deploy-pages:
+    if: ${{ github.event_name != 'pull_request' && needs.build.outputs.placeholder != 'true' }}
+    needs: build
+    permissions: # never at workflow level, or build holds them
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: paper-build
+          path: site
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: d
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
